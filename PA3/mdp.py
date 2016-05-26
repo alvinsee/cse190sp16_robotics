@@ -7,8 +7,6 @@ import heapq
 import sys
 import copy
 
-from cse_190_assi_3.msg import AStarPath
-
 from read_config import read_config
 
 class Cell():

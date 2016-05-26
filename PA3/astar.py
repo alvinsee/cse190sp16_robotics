@@ -5,8 +5,6 @@ import math as m
 import rospy
 import heapq
 
-from cse_190_assi_3.msg import AStarPath
-
 from read_config import read_config
 
 class Node():
