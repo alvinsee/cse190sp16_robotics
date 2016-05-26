@@ -32,7 +32,7 @@ class Robot():
         rospy.signal_shutdown("Great Success.")
 
     def bootstrap(self):
-        self.astar_pub    = rospy.Publisher("/results/path_list", AStarPath, queue_size = 10)
+        self.astar_pub    = rospy.Publisher("/results/path_list", AStarPath, queue_size = 50)
         self.mdp_pub      = rospy.Publisher("/results/policy_list", PolicyList, queue_size = 10)
         self.sim_complete = rospy.Publisher("/map_node/sim_complete", Bool, queue_size = 1)
 
