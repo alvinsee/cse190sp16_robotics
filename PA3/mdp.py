@@ -40,20 +40,20 @@ def solve():
 
     move_list = config['move_list']
 
-    max_iterations = config['max_iterations']
+    max_iterations       = config['max_iterations']
     threshold_difference = config["threshold_difference"]
 
-    reward_for_each_step = config["reward_for_each_step"]
-    reward_for_hitting_wall = config["reward_for_hitting_wall"]
-    reward_for_reaching_goal = config["reward_for_reaching_goal"]
+    reward_for_each_step      = config["reward_for_each_step"]
+    reward_for_hitting_wall   = config["reward_for_hitting_wall"]
+    reward_for_reaching_goal  = config["reward_for_reaching_goal"]
     reward_for_falling_in_pit = config["reward_for_falling_in_pit"]
 
     discount_factor = config["discount_factor"]
 
-    prob_move_forward = config["prob_move_forward"]
-    prob_move_right = config["prob_move_right"]
+    prob_move_forward  = config["prob_move_forward"]
+    prob_move_left     = config["prob_move_left"]
+    prob_move_right    = config["prob_move_right"]
     prob_move_backward = config["prob_move_backward"]
-    prob_move_left = config["prob_move_left"]
 
     ###############
     # Set up grid #
@@ -84,9 +84,9 @@ def solve():
     iteration = 0
     threshold = sys.maxint
 
-    policy     = []
+    policy    = []
 
-    while threshold >= threshold_difference or iteration < max_iterations:
+    while threshold >= threshold_difference and iteration < max_iterations:
 
         threshold = 0.0
 
@@ -97,8 +97,8 @@ def solve():
                 stationary_cell        = copy.deepcopy(curr_cell)
                 stationary_cell.reward = reward_for_hitting_wall
 
-                act_util  = []
-                neighbours = []
+                action_util = []
+                neighbours  = []
 
                 # dont update if wall, pit, or goal
                 if curr_cell.policy == "WALL" or curr_cell.policy == "PIT" or curr_cell.policy == "GOAL":
@@ -161,17 +161,17 @@ def solve():
                     utility += prob_move_backward * (down.reward    + discount_factor * down.prev)
                     utility += prob_move_left     * (left.reward    + discount_factor * left.prev)
 
-                    heapq.heappush(act_util, (Util(utility), policies[tuple(action)]))
+                    heapq.heappush(action_util, (Util(utility), policies[tuple(action)]))
 
-                move_tuple       = heapq.heappop(act_util)
+                move_tuple       = heapq.heappop(action_util)
                 curr_cell.value  = move_tuple[0].utility
                 curr_cell.policy = move_tuple[1]
 
         # update prev = current value
         for x in range(0, row_size):
             for y in range(0, col_size):
-                curr_cell = map_graph[(x, y)]
-                threshold += abs(curr_cell.value - curr_cell.prev)
+                curr_cell      = map_graph[(x, y)]
+                threshold     += abs(curr_cell.value - curr_cell.prev)
                 curr_cell.prev = curr_cell.value
 
         iteration += 1
@@ -179,7 +179,5 @@ def solve():
     for x in range(0, row_size):
         for y in range(0, col_size):
             policy.append(map_graph[(x, y)].policy)
-
-    print policy
 
     return policy
