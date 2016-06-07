@@ -1,8 +1,3 @@
-# mdp implementation needs to go here
-
-import numpy as np
-import math as m
-import rospy
 import heapq
 import sys
 import copy
@@ -11,14 +6,13 @@ import bisect
 
 from read_config import read_config
 
-SOME_L = 1.337
-
 class Cell():
     def __init__(self, position, reward):
         self.position = position
         self.reward   = reward
+        self.value    = 0.0
+        self.pre      = 0.0
         self.q_values = {(0,1): 0.0, (0,-1): 0.0, (1,0): 0.0, (-1,0): 0.0}
-        self.n        = {(0,1): 1, (0,-1): 1, (1,0): 1, (-1,0): 1}
         self.policy   = "N"
 
 class Util():
@@ -36,7 +30,7 @@ def weighted_choice(distribution):
         total += weight
         cummulative_weights.append(total)
 
-    r = random.uniform(0.0, 1.0)
+    r = random.uniform(0.0, total)
     return moves[bisect.bisect(cummulative_weights, r)]
 
 def solve():
@@ -52,8 +46,8 @@ def solve():
     walls     = config['walls']
     pits      = config['pits']
 
-    start     = config['start']
-    goal      = config['goal']
+    start     = tuple(config['start'])
+    goal      = tuple(config['goal'])
 
     move_list = config['move_list']
 
@@ -65,15 +59,18 @@ def solve():
     reward_for_reaching_goal  = config["reward_for_reaching_goal"]
     reward_for_falling_in_pit = config["reward_for_falling_in_pit"]
 
-    discount_factor = config["discount_factor"]
-    learning_rate   = config["learning_rate"]
+    discount_factor    = config["discount_factor"]
+    learning_rate      = config["learning_rate"]
+    learning_rate_fast = config["learning_rate_fast"]
+
+    epsilon = config["epsilon"]
 
     prob_move_forward  = config["prob_move_forward"]
     prob_move_left     = config["prob_move_left"]
     prob_move_right    = config["prob_move_right"]
     prob_move_backward = config["prob_move_backward"]
 
-    distribution = [("FORWARD", prob_move_forward), ("LEFT", prob_move_left), ("RIGHT", prob_move_right), ("BACKWARDS", prob_move_backward)]
+    distribution = (("FORWARD", prob_move_forward), ("LEFT", prob_move_left), ("RIGHT", prob_move_right), ("BACKWARDS", prob_move_backward))
 
     ###############
     # Set up grid #
@@ -97,48 +94,52 @@ def solve():
     goal_cell.reward = reward_for_reaching_goal
 
     policies = {(0,1):"E", (0,-1):"W", (1,0):"S", (-1,0):"N"}
+    to_actions = {"E": (0,1), "W": (0,-1), "S": (1,0), "N": (-1,0)}
 
     ####################
     # Solve Q-Learning #
-    ###################
+    ####################
     iteration = 0
 
     list_policies = []
 
-    curr_cell = map_graph[tuple(start)]
+    curr_cell = map_graph[start]
 
+    # start x, y
     x = start[0]
     y = start[1]
 
     while iteration < max_iterations:
 
-
         relative_cell = None
+        action        = None
 
         forward    = None
         right      = None
         down       = None
         left       = None
 
+        threshold  = 0.0
         utility    = 0.0
+        alpha      = 0.0
 
         action_util = []
+        curr_q      = []
         max_q       = []
+        min_q       = []
         neighbours  = []
         policy      = []
 
-        # if pit or goal, reset robot
+        # if pit or goal, reset robot to the start
         if curr_cell.policy == "PIT" or curr_cell.policy == "GOAL":
             x = start[0]
             y = start[1]
-            curr_cell = map_graph[tuple(start)]
-            #continue
+            curr_cell = map_graph[start]
 
-        #print "x: ", x, ", y: ", y
         stationary_cell        = copy.deepcopy(curr_cell)
         stationary_cell.reward = reward_for_hitting_wall
 
-        # pre-compute neightbouring cells
+        # pre-compute neighbouring cells
         for move in move_list:
             new_x    = x + move[0]
             new_y    = y + move[1]
@@ -156,9 +157,23 @@ def solve():
             else:
                 neighbours.append(neighbour_cell)
 
-        # pick a random action
-        action = tuple(move_list[random.randint(0, 3)])
+        # pick a random action based on epsilon
+        if random.random() < epsilon:
+            for m, q in curr_cell.q_values.iteritems():
+                heapq.heappush(curr_q, (Util(q), m))
+                heapq.heappush(min_q, (q, m))
 
+            mag = max(abs(heapq.heappop(curr_q)[0].utility), abs(heapq.heappop(min_q)[0]))
+            curr_q = []
+
+            for m, q in curr_cell.q_values.iteritems():
+                heapq.heappush(curr_q, (Util(q + (random.random() - .5)*mag), m))
+
+            action = heapq.heappop(curr_q)[1]
+        else:
+            action = tuple(move_list[random.randint(0,3)])
+
+        # movement resulted from uncertainty
         relative_action = weighted_choice(distribution)
 
         # Move EAST
@@ -186,64 +201,40 @@ def solve():
             down    = neighbours[2]
             left    = neighbours[1]
 
+        # set relative cell based on uncertainty
         if relative_action == "FORWARD":
-            for k, q in forward.q_values.iteritems():
-                heapq.heappush(action_util, (Util(q + SOME_L/float(forward.n[k])), k))
-
             relative_cell = forward
-
-            res = heapq.heappop(action_util)
-            forward.n[res[1]] += 1
-
-            utility = forward.reward + discount_factor * res[0].utility
-            curr_cell.q_values[action] = (1.0 - learning_rate) * curr_cell.q_values[action] + learning_rate * utility
-
         elif relative_action == "LEFT":
-            for k, q in left.q_values.iteritems():
-                heapq.heappush(action_util, (Util(q + SOME_L/float(left.n[k])), k))
-
             relative_cell = left
-
-            res = heapq.heappop(action_util)
-            left.n[res[1]] += 1
-
-            utility = left.reward + discount_factor * res[0].utility
-            curr_cell.q_values[action] = (1.0 - learning_rate) * curr_cell.q_values[action] + learning_rate * utility
-
         elif relative_action == "RIGHT":
-            for k, q in right.q_values.iteritems():
-                heapq.heappush(action_util, (Util(q + SOME_L/float(right.n[k])), k))
-
             relative_cell = right
-
-            res = heapq.heappop(action_util)
-            right.n[res[1]] += 1
-
-            utility = right.reward + discount_factor * res[0].utility
-            curr_cell.q_values[action] = (1.0 - learning_rate) * curr_cell.q_values[action] + learning_rate * utility
-
         else:
-            for k, q in down.q_values.iteritems():
-                heapq.heappush(action_util, (Util(q + SOME_L/float(down.n[k])), k))
-
             relative_cell = down
 
-            res = heapq.heappop(action_util)
-            down.n[res[1]] += 1
+        # disastrous result(s)
+        if relative_cell.policy == "PIT" or relative_cell.policy == "WALL":
+            alpha = learning_rate_fast
+        # normal exploration
+        else:
+            alpha = learning_rate
 
-            utility = down.reward + discount_factor * res[0].utility
-            curr_cell.q_values[action] = (1.0 - learning_rate) * curr_cell.q_values[action] + learning_rate * utility
+        # learn new Q
+        for move, q in relative_cell.q_values.iteritems():
+            heapq.heappush(action_util, (Util(q), move))
 
-        for k, v in curr_cell.q_values.iteritems():
-            heapq.heappush(max_q, (Util(v), k))
+        maxQ   = heapq.heappop(action_util)
+        sample = alpha * (relative_cell.reward + discount_factor * maxQ[0].utility)
+        curr_cell.q_values[action] *= (1.0 - alpha)
+        curr_cell.q_values[action] += sample
 
-        curr_cell.policy = policies[(heapq.heappop(max_q)[1])]
+        # update policy
+        for move, q in curr_cell.q_values.iteritems():
+            heapq.heappush(max_q, (Util(q), move))
 
-        curr_cell = relative_cell
-        x = curr_cell.position[0]
-        y = curr_cell.position[1]
-
-        #list_policies.append(copy.deepcopy(policy))
+        curr_cell.policy = policies[heapq.heappop(max_q)[1]]
+        curr_cell        = relative_cell
+        x                = curr_cell.position[0]
+        y                = curr_cell.position[1]
 
         iteration += 1
 

@@ -29,7 +29,7 @@ class Robot():
         rospy.signal_shutdown("Great Success.")
 
     def bootstrap(self):
-        self.q_pub      = rospy.Publisher("/results/policy_list", PolicyList, queue_size = 1)
+        self.q_pub      = rospy.Publisher("/results/policy_list", PolicyList, queue_size = 10)
         self.sim_complete = rospy.Publisher("/map_node/sim_complete", Bool, queue_size = 1)
 
 if __name__ == '__main__':
