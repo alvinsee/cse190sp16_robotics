@@ -238,8 +238,10 @@ def solve():
 
         iteration += 1
 
-    for x in range(0, row_size):
-        for y in range(0, col_size):
-            list_policies.append(map_graph[(x, y)].policy)
+        for _x in range(0, row_size):
+            for _y in range(0, col_size):
+                policy.append(map_graph[(_x, _y)].policy)
+
+        list_policies.append(copy.deepcopy(policy))
 
     return list_policies
