@@ -22,10 +22,11 @@ class Robot():
         for x in range(0, len(q_result)):
             if x % 25 == 0:
                 self.q_pub.publish(q_result[x])
+                rospy.sleep(0.1)
 
         # publish final policy
         self.q_pub.publish(q_result[-1])
-        rospy.sleep(1)
+        rospy.sleep(0.1)
 
         self.sim_complete.publish(True)
         rospy.sleep(1)

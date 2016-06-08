@@ -5,7 +5,7 @@ from read_config import read_config
 
 map_x = (read_config()["map_size"][0])
 map_y = (read_config()["map_size"][1])
-MAP_SHAPE = (((map_x * (20 + 4)) + 4), ((map_y * (20 + 4)) + 4), 3)
+MAP_SHAPE = (((map_x * (100 + 4)) + 4), ((map_y * (100 + 4)) + 4), 3)
 
 up = cv2.imread("../img/up.jpg")
 down = cv2.imread("../img/down.jpg")
@@ -33,9 +33,9 @@ def save_image_for_iteration(policy_list, iteration):
     empty_map.fill(255)
     for row in range(len(policy_list)):
         for col in range(len(policy_list[0])):
-            new_pos_row = ((row + 1) * 4) + (row * 20)
-            new_pos_col = ((col + 1) * 4) + (col * 20)
-            empty_map[new_pos_row : new_pos_row + 20, new_pos_col : new_pos_col + 20] = img_map[policy_list[row][col]]
+            new_pos_row = ((row + 1) * 4) + (row * 100)
+            new_pos_col = ((col + 1) * 4) + (col * 100)
+            empty_map[new_pos_row : new_pos_row + 100, new_pos_col : new_pos_col + 100] = img_map[policy_list[row][col]]
     cv2.imwrite("../saved_video/iteration_" + str(iteration) + ".jpg", empty_map)
 
 
@@ -45,7 +45,7 @@ def generate_video(no_of_iterations):
     for i in range(no_of_iterations):
         file_name = "../saved_video/iteration_" + str(i) + ".jpg"
         img = cv2.imread(file_name)
-        video.write(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
+        video.write(np.array(img))
         #This removes the image after stitching it to the video. Please comment this if you want the images to be saved
         os.remove(file_name)
     video.release()
