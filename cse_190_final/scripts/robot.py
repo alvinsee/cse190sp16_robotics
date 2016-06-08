@@ -20,7 +20,7 @@ class Robot():
         q_result   = qlearning.solve()
 
         for x in range(0, len(q_result)):
-            if x % 50 == 0:
+            if x % 25 == 0:
                 self.q_pub.publish(q_result[x])
 
         # publish final policy
