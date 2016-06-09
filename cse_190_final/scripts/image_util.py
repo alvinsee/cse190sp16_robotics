@@ -14,11 +14,13 @@ right = cv2.imread("../img/right.jpg")
 goal = cv2.imread("../img/goal.jpg")
 wall = cv2.imread("../img/wall.jpg")
 pit = cv2.imread("../img/pit.jpg")
+empty = cv2.imread("../img/empty.jpg")
 
 img_map = {
     "WALL": wall,
     "PIT": pit,
     "GOAL": goal,
+    "NONE": empty,
     "N": up,
     "S": down,
     "W": left,

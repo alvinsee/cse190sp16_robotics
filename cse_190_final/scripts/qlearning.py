@@ -13,7 +13,7 @@ class Cell():
         self.value    = 0.0
         self.pre      = 0.0
         self.q_values = {(0,1): 0.0, (0,-1): 0.0, (1,0): 0.0, (-1,0): 0.0}
-        self.policy   = "N"
+        self.policy   = "NONE"
 
 class Util():
     def __init__(self, utility):
@@ -94,7 +94,6 @@ def solve():
     goal_cell.reward = reward_for_reaching_goal
 
     policies = {(0,1):"E", (0,-1):"W", (1,0):"S", (-1,0):"N"}
-    to_actions = {"E": (0,1), "W": (0,-1), "S": (1,0), "N": (-1,0)}
 
     ####################
     # Solve Q-Learning #
